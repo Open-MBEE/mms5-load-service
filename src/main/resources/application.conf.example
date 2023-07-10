@@ -8,7 +8,7 @@ ktor {
     }
 }
 jwt {
-    domain = "https://mms5.openmbee.org/"
+    domain = "https://jwt-provider-domain/"
     domain = ${?JWT_DOMAIN}
     audience = "jwt-audience"
     audience = ${?JWT_AUDIENCE}
