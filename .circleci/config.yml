@@ -6,7 +6,7 @@ jobs:
   build_and_test:
     executor:
       name: docker/docker
-    working_directory: /home/circleci/mms5-store-service
+    working_directory: /home/circleci/flexo-mms-store-service
     steps:
       - checkout
       - setup_remote_docker:
@@ -15,20 +15,20 @@ jobs:
           name: Build docker image
           command: |
             cp src/main/resources/application.conf.example ./src/main/resources/application.conf
-            docker build -t openmbee/mms5-store-service:latest .
+            docker build -t openmbee/flexo-mms-store-service:latest .
       - run:
           name: Export docker image
           command: |
-            docker save -o mms5-store-service.tar openmbee/mms5-store-service:latest
+            docker save -o flexo-mms-store-service.tar openmbee/flexo-mms-store-service:latest
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - mms5-store-service/*
+            - flexo-mms-store-service/*
 
   deploy_snapshot:
     executor:
       name: docker/docker
-    working_directory: /home/circleci/mms5-store-service
+    working_directory: /home/circleci/flexo-mms-store-service
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -39,17 +39,17 @@ jobs:
           command: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - run:
           name: Load docker image
-          command: docker load -i mms5-store-service.tar
+          command: docker load -i flexo-mms-store-service.tar
       - run:
           name: Tag docker image
-          command: docker tag openmbee/mms5-store-service:latest openmbee/mms5-store-service:${CIRCLE_BRANCH#*/}-SNAPSHOT
+          command: docker tag openmbee/flexo-mms-store-service:latest openmbee/flexo-mms-store-service:${CIRCLE_BRANCH#*/}-SNAPSHOT
       - run:
           name: Deploy snapshot to Dockerhub
-          command: docker push openmbee/mms5-store-service:${CIRCLE_BRANCH#*/}-SNAPSHOT
+          command: docker push openmbee/flexo-mms-store-service:${CIRCLE_BRANCH#*/}-SNAPSHOT
   deploy_release:
     executor:
       name: docker/docker
-    working_directory: /home/circleci/mms5-store-service
+    working_directory: /home/circleci/flexo-mms-store-service
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -60,16 +60,16 @@ jobs:
           command: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - run:
           name: Load docker image
-          command: docker load -i mms5-store-service.tar
+          command: docker load -i flexo-mms-store-service.tar
       - run:
           name: Tag docker image
-          command: docker tag openmbee/mms5-store-service:latest openmbee/mms5-store-service:${CIRCLE_TAG}
+          command: docker tag openmbee/flexo-mms-store-service:latest openmbee/flexo-mms-store-service:${CIRCLE_TAG}
       - run:
           name: Deploy release to dockerhub
-          command: docker push openmbee/mms5-store-service:${CIRCLE_TAG}
+          command: docker push openmbee/flexo-mms-store-service:${CIRCLE_TAG}
       - run:
           name: Deploy release as latest to dockerhub
-          command: docker push openmbee/mms5-store-service:latest
+          command: docker push openmbee/flexo-mms-store-service:latest
 
 workflows:
   version: 2
