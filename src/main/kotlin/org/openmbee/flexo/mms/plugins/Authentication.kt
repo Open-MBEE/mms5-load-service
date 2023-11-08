@@ -1,12 +1,14 @@
-package org.openmbee.mms5.plugins
+package org.openmbee.flexo.mms.plugins
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import io.ktor.application.*
-import io.ktor.auth.*
-import io.ktor.auth.jwt.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 
 fun Application.configureAuthentication() {
+    val environment = environment
+
     authentication {
         jwt {
             val jwtAudience = environment.config.property("jwt.audience").getString()

@@ -6,12 +6,13 @@ val tika_version: String by project
 
 plugins {
     application
-    kotlin("jvm") version "1.6.20"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.6.20"
+    kotlin("jvm") version "1.9.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
+    id("com.github.ben-manes.versions") version "0.49.0"
 }
 
-group = "org.openmbee.mms5"
-version = "0.0.1"
+group = "org.openmbee.flexo.mms"
+version = "0.1.0"
 application {
     mainClass.set("io.ktor.server.cio.EngineMain")
 
@@ -25,10 +26,18 @@ repositories {
 
 dependencies {
     implementation("io.ktor:ktor-server-core:$ktor_version")
-    implementation("io.ktor:ktor-auth:$ktor_version")
-    implementation("io.ktor:ktor-auth-jwt:$ktor_version")
-    implementation("io.ktor:ktor-jackson:$ktor_version")
+    implementation("io.ktor:ktor-server-auth:$ktor_version")
+    implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
+    implementation("io.ktor:ktor-server-auto-head-response:$ktor_version")
+    implementation("io.ktor:ktor-server-call-logging:$ktor_version")
     implementation("io.ktor:ktor-server-cio:$ktor_version")
+    implementation("io.ktor:ktor-server-cors:$ktor_version")
+    implementation("io.ktor:ktor-server-conditional-headers:$ktor_version")
+    implementation("io.ktor:ktor-server-default-headers:$ktor_version")
+    implementation("io.ktor:ktor-server-forwarded-header:$ktor_version")
+    implementation("io.ktor:ktor-server-status-pages:$ktor_version")
+    implementation("io.ktor:ktor-serialization-jackson:$ktor_version")
+
     implementation("ch.qos.logback:logback-classic:$logback_version")
 
     implementation("com.amazonaws:aws-java-sdk-s3:$s3_version")

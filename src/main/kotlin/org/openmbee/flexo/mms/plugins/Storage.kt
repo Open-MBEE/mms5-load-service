@@ -1,4 +1,4 @@
-package org.openmbee.mms5.plugins
+package org.openmbee.flexo.mms.plugins
 
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.AWSCredentials
@@ -12,15 +12,15 @@ import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.amazonaws.services.s3.model.GetObjectRequest
 import com.amazonaws.services.s3.model.ObjectMetadata
 import com.amazonaws.services.s3.model.PutObjectRequest
-import io.ktor.application.*
-import io.ktor.auth.*
-import io.ktor.config.*
-import io.ktor.features.*
+import io.ktor.server.application.*
+import io.ktor.server.config.*
+import io.ktor.server.plugins.autohead.*
 import io.ktor.http.*
-import io.ktor.request.*
-import io.ktor.response.*
-import io.ktor.routing.*
-import org.openmbee.mms5.lib.MimeTypes
+import io.ktor.server.auth.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import org.openmbee.flexo.mms.lib.MimeTypes
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Instant

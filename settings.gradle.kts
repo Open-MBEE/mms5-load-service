@@ -1,1 +1,1 @@
-rootProject.name = "org.openmbee.mms5.store-service"
+rootProject.name = "org.openmbee.flexo.mms.store-service"

@@ -1,7 +1,7 @@
-package org.openmbee.mms5
+package org.openmbee.flexo.mms
 
-import io.ktor.application.*
-import org.openmbee.mms5.plugins.*
+import io.ktor.server.application.*
+import org.openmbee.flexo.mms.plugins.*
 
 fun main(args: Array<String>): Unit =
     io.ktor.server.cio.EngineMain.main(args)
