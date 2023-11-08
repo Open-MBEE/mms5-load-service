@@ -27,6 +27,7 @@ fun Application.configureHTTP() {
             cause.handle(call)
         }
         exception<Throwable> { call, cause ->
+            call.application.log.error("internal error", cause)
             call.respondText(cause.stackTraceToString(), status=HttpStatusCode.InternalServerError)
         }
     }
@@ -38,6 +39,7 @@ fun Application.configureHTTP() {
         allowMethod(HttpMethod.Patch)
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
+        allowCredentials = true
         anyHost() // @TODO: make configuration
     }
 
