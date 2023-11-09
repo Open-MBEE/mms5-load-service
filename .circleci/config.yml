@@ -78,7 +78,7 @@ workflows:
       - build_and_test:
           filters:
             tags:
-              only: /[0-9.]+(-(a|b|rc)[0-9]+)?/
+              only: /v[0-9.]+(-[\w-]+(\.[0-9]+)?)?/
           context:
             - DockerHub
       - deploy_snapshot:
@@ -86,7 +86,7 @@ workflows:
             - build_and_test
           filters:
             branches:
-              only: /((release|hotfix|support)/[0-9.]+(-(a|b|rc)[0-9]+)?|develop)/
+              only: /((release|hotfix|support)/[0-9.]+(-[\w-]+(\.[0-9]+)?)?|develop)/
           context:
             - DockerHub
       - deploy_release:
@@ -94,7 +94,7 @@ workflows:
             - build_and_test
           filters:
             tags:
-              only: /[0-9.]+(-(a|b|rc)[0-9]+)?/
+              only: /v[0-9.]+(-[\w-]+(\.[0-9]+)?)?/
             branches:
               ignore: /.*/
           context:
