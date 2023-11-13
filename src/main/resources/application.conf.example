@@ -10,7 +10,7 @@ ktor {
     }
     security {
         ssl {
-            keyStore = keystore.jks
+            keyStore = /application/keystore.jks
             keyStore = ${?KEYSTORE}
             keyAlias = mms.openmbee.org
             keyAlias = ${?KEYALIAS}
