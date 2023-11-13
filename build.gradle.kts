@@ -14,7 +14,7 @@ plugins {
 group = "org.openmbee.flexo.mms"
 version = "0.1.0"
 application {
-    mainClass.set("io.ktor.server.cio.EngineMain")
+    mainClass.set("io.ktor.server.netty.EngineMain")
 
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
@@ -30,7 +30,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
     implementation("io.ktor:ktor-server-auto-head-response:$ktor_version")
     implementation("io.ktor:ktor-server-call-logging:$ktor_version")
-    implementation("io.ktor:ktor-server-cio:$ktor_version")
+    implementation("io.ktor:ktor-server-netty:$ktor_version")
     implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("io.ktor:ktor-server-conditional-headers:$ktor_version")
     implementation("io.ktor:ktor-server-default-headers:$ktor_version")
