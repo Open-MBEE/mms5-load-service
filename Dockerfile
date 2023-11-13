@@ -16,5 +16,6 @@ COPY --from=build application/build/install/org.openmbee.flexo.mms.store-service
 RUN mkdir /config && touch /config/override.conf
 COPY --from=build application/src/main/resources/application.conf.example /config/application.conf
 COPY --from=build application/src/main/resources/keystore.jks /application/keystore.jks
+COPY --from=build application/src/main/resources/cacerts /application/cacerts
 ENTRYPOINT ["./bin/org.openmbee.flexo.mms.store-service", "--config", "/config/application.conf", "--config","/config/override.conf"]
 EXPOSE 8080 8443

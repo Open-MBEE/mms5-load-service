@@ -15,7 +15,9 @@ ktor {
             keyAlias = mms.openmbee.org
             keyAlias = ${?KEYALIAS}
             keyStorePassword = changeit
+            keyStorePassword = ${?KEYSTOREPASSWORD}
             privateKeyPassword = changeit
+            privateKeyPassword = ${?PRIVATEKEYPASSWORD}
         }
     }
 }
