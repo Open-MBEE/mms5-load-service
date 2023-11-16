@@ -8,16 +8,12 @@ plugins {
     application
     kotlin("jvm") version "1.9.20"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
-    //id("com.github.ben-manes.versions") version "0.49.0"
 }
 
 group = "org.openmbee.flexo.mms"
 version = "0.1.1"
 application {
     mainClass.set("io.ktor.server.netty.EngineMain")
-
-    //val isDevelopment: Boolean = project.ext.has("development")
-    //applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 repositories {
