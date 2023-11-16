@@ -37,6 +37,8 @@ fun Application.configureStorage() {
     routing {
         authenticate {
             post("store/{filename}") {
+                // https://www.baeldung.com/kotlin/io-and-default-dispatcher
+                // s3 client file operation is blocking, on netty this will error without withContext
                 withContext(Dispatchers.IO) {
                     val contentType = call.request.contentType()
                     val location = s3Storage.store(
@@ -57,8 +59,10 @@ fun Application.configureStorage() {
             }
 
             get("file/{filename}") {
-                val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
-                call.respond(s3Storage.get(location))
+                withContext(Dispatchers.IO) {
+                    val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
+                    call.respond(s3Storage.get(location))
+                }
             }
         }
     }
