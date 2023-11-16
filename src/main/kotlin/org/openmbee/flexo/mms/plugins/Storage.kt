@@ -20,6 +20,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.openmbee.flexo.mms.lib.MimeTypes
 import org.slf4j.LoggerFactory
 import java.io.InputStream
@@ -35,15 +37,17 @@ fun Application.configureStorage() {
     routing {
         authenticate {
             post("store/{filename}") {
-                val contentType = call.request.contentType()
-                val location = s3Storage.store(
-                    call.receiveStream(),
-                    call.parameters["filename"]!!,
-                    call.request.header(HttpHeaders.ContentLength)!!.toLong(),
-                    call.request.contentType()
-                )
-                call.application.log.info("Location:\n$location")
-                call.respond(s3Storage.getPreSignedUrl(location))
+                withContext(Dispatchers.IO) {
+                    val contentType = call.request.contentType()
+                    val location = s3Storage.store(
+                        call.receiveStream(),
+                        call.parameters["filename"]!!,
+                        call.request.header(HttpHeaders.ContentLength)!!.toLong(),
+                        call.request.contentType()
+                    )
+                    call.application.log.info("Location:\n$location")
+                    call.respond(s3Storage.getPreSignedUrl(location))
+                }
             }
 
             get("signed/{filename}") {
@@ -73,7 +77,7 @@ class S3Storage(s3Config: S3Config) {
 
     fun getPreSignedUrl(location: String): String {
         return s3Client
-            .generatePresignedUrl(bucket, location, Date.from(Instant.now().plusSeconds(10 * 60)))
+            .generatePresignedUrl(bucket, location, Date.from(Instant.now().plusSeconds(30 * 60)))
             .toString()
     }
 
