@@ -6,13 +6,14 @@ ktor {
     application {
         modules = [ org.openmbee.flexo.mms.ApplicationKt.module ]
     }
+    development = false
 }
 jwt {
     domain = "https://jwt-provider-domain/"
     domain = ${?JWT_DOMAIN}
     audience = "jwt-audience"
     audience = ${?JWT_AUDIENCE}
-    realm = "MMS5 Microservices"
+    realm = "Flexo MMS Microservices"
     realm = ${?JWT_REALM}
     secret = "secret123"
     secret = ${?JWT_SECRET}

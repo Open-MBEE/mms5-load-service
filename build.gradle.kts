@@ -8,16 +8,12 @@ plugins {
     application
     kotlin("jvm") version "1.9.20"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
-    id("com.github.ben-manes.versions") version "0.49.0"
 }
 
 group = "org.openmbee.flexo.mms"
-version = "0.1.0"
+version = "0.1.1"
 application {
-    mainClass.set("io.ktor.server.cio.EngineMain")
-
-    val isDevelopment: Boolean = project.ext.has("development")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
+    mainClass.set("io.ktor.server.netty.EngineMain")
 }
 
 repositories {
@@ -30,7 +26,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
     implementation("io.ktor:ktor-server-auto-head-response:$ktor_version")
     implementation("io.ktor:ktor-server-call-logging:$ktor_version")
-    implementation("io.ktor:ktor-server-cio:$ktor_version")
+    implementation("io.ktor:ktor-server-netty:$ktor_version")
     implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("io.ktor:ktor-server-conditional-headers:$ktor_version")
     implementation("io.ktor:ktor-server-default-headers:$ktor_version")
