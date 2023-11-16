@@ -8,7 +8,7 @@ plugins {
     application
     kotlin("jvm") version "1.9.20"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
-    id("com.github.ben-manes.versions") version "0.49.0"
+    //id("com.github.ben-manes.versions") version "0.49.0"
 }
 
 group = "org.openmbee.flexo.mms"
