@@ -6,6 +6,7 @@ ktor {
     application {
         modules = [ org.openmbee.flexo.mms.ApplicationKt.module ]
     }
+    development = false
 }
 jwt {
     domain = "https://jwt-provider-domain/"
