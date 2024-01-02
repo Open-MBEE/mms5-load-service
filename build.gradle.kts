@@ -3,6 +3,7 @@ val kotlin_version: String by project
 val logback_version: String by project
 val s3_version: String by project
 val tika_version: String by project
+val testcontainers_version: String by project
 
 plugins {
     application
@@ -40,4 +41,6 @@ dependencies {
 
     testImplementation("io.ktor:ktor-server-tests:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("org.testcontainers:testcontainers:$testcontainers_version")
+    testImplementation("org.testcontainers:junit-jupiter:$testcontainers_version")
 }
