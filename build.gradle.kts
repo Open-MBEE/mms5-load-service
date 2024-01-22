@@ -4,6 +4,7 @@ val logback_version: String by project
 val s3_version: String by project
 val tika_version: String by project
 val testcontainers_version: String by project
+val minio_version: String by project
 
 plugins {
     application
@@ -40,7 +41,14 @@ dependencies {
     implementation("com.amazonaws:aws-java-sdk-s3:$s3_version")
 
     testImplementation("io.ktor:ktor-server-tests:$ktor_version")
+    testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlin_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     testImplementation("org.testcontainers:testcontainers:$testcontainers_version")
     testImplementation("org.testcontainers:junit-jupiter:$testcontainers_version")
+    testImplementation("org.testcontainers:minio:$minio_version")
+    testImplementation(kotlin("test"))
+
+    val junitVersion = "5.10.1"
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:$junitVersion")
 }
