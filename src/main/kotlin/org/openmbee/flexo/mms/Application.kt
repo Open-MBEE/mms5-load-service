@@ -1,7 +1,11 @@
-package org.openmbee.flexo.mms
+package org.openmbee.flexo.mms.store
 
 import io.ktor.server.application.*
-import org.openmbee.flexo.mms.plugins.*
+import org.openmbee.flexo.mms.store.plugins.*
+import org.openmbee.flexo.mms.store.plugins.configureAuthentication
+import org.openmbee.flexo.mms.store.plugins.configureHTTP
+import org.openmbee.flexo.mms.store.plugins.configureMonitoring
+import org.openmbee.flexo.mms.store.plugins.configureStorage
 
 fun main(args: Array<String>): Unit =
     io.ktor.server.netty.EngineMain.main(args)

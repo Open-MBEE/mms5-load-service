@@ -1,4 +1,4 @@
-package org.openmbee.flexo.mms.lib
+package org.openmbee.flexo.mms.store.lib
 
 import io.ktor.http.ContentType
 
