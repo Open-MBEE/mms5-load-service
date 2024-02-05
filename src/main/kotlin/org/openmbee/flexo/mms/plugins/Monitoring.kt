@@ -1,4 +1,4 @@
-package org.openmbee.flexo.mms.store.plugins
+package org.openmbee.flexo.mms.plugins
 
 import io.ktor.server.application.*
 import io.ktor.server.plugins.callloging.*
