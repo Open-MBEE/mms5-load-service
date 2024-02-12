@@ -1,23 +1,17 @@
 package org.openmbee.flexo.mms
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
 import io.ktor.server.config.*
 import io.ktor.server.testing.*
 import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
-import kotlin.test.*
-import org.openmbee.flexo.mms.plugins.UserDetailsPrincipal
+import org.junit.jupiter.api.Test
 import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.wait.strategy.Wait
-import org.testcontainers.junit.jupiter.Testcontainers
-import java.util.*
+import org.testcontainers.containers.wait.strategy.HttpWaitStrategy
+import java.time.Duration
 
 class ApplicationTest {
-    companion object{
+    companion object {
         //JWT settings
         val issuer = "https://localhost/"
         val audience = "test-audience"
@@ -51,14 +45,21 @@ class ApplicationTest {
             withExposedPorts(MINIO_PORT_NUMBER)
             withEnv(minioENVs)
             withCommand("server /tmp/data")
-            waitingFor(Wait.forLogMessage(".*1 Online.*", 1))
+            waitingFor(
+                HttpWaitStrategy()
+                    .forPath("/minio/health/ready")
+                    .forPort(MINIO_PORT_NUMBER)
+                    .withStartupTimeout(Duration.ofSeconds(10))
+            )
         }
+
         @JvmStatic
         @BeforeAll
         fun beforeAll() {
             minioContainer.start()
-            testEnv.put("s3.endpoint", "http://${minioContainer.host}:${
-                minioContainer.getMappedPort(MINIO_PORT_NUMBER)}")
+            testEnv.put(
+                "s3.endpoint", "http://${minioContainer.host}:${minioContainer.getMappedPort(MINIO_PORT_NUMBER)}"
+            )
         }
 
         @JvmStatic
@@ -77,12 +78,11 @@ class ApplicationTest {
             module()
         }
 
-        while(!minioContainer.isRunning) {
-            print("Still going")
-            Thread.sleep(1000)
-        }
+        Assertions.assertTrue(minioContainer.isRunning)
+    }
+}
 
-
+//From flexo-mms-auth Application.test
 //        val principal = UserDetailsPrincipal(name = "test name", groups = listOf("all"))
 //        val token = generateJWT(issuer = issuer, audience = audience, secret = secret, principal = principal)
 //        val authTest = client.get("/") {
@@ -90,7 +90,7 @@ class ApplicationTest {
 //        }.bodyAsText()
 //
 //        assertEquals("Hello World!", authTest)
-    }
+//    }
 
 //    fun generateJWT(audience: String, issuer: String, secret: String, principal: UserDetailsPrincipal): String {
 //        val expires = Date(System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000))
@@ -102,7 +102,7 @@ class ApplicationTest {
 //            .withExpiresAt(expires)
 //            .sign(Algorithm.HMAC256(secret))
 //        }
-}
+
 
 
 //From Blake

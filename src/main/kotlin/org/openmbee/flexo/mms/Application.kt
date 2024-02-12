@@ -3,7 +3,6 @@ package org.openmbee.flexo.mms
 import io.ktor.server.application.*
 import org.openmbee.flexo.mms.plugins.*
 
-
 fun main(args: Array<String>): Unit =
     io.ktor.server.netty.EngineMain.main(args)
 
