@@ -82,29 +82,6 @@ class ApplicationTest {
     }
 }
 
-//From flexo-mms-auth Application.test
-//        val principal = UserDetailsPrincipal(name = "test name", groups = listOf("all"))
-//        val token = generateJWT(issuer = issuer, audience = audience, secret = secret, principal = principal)
-//        val authTest = client.get("/") {
-//            header(HttpHeaders.Authorization, "Bearer $token")
-//        }.bodyAsText()
-//
-//        assertEquals("Hello World!", authTest)
-//    }
-
-//    fun generateJWT(audience: String, issuer: String, secret: String, principal: UserDetailsPrincipal): String {
-//        val expires = Date(System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000))
-//        return JWT.create()
-//            .withAudience(audience)
-//            .withIssuer(issuer)
-//            .withClaim("username", principal.name)
-//            .withClaim("groups", principal.groups)
-//            .withExpiresAt(expires)
-//            .sign(Algorithm.HMAC256(secret))
-//        }
-
-
-
 //From Blake
 //    @Test
 //    fun testRoot() {

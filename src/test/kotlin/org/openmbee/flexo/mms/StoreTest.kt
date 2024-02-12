@@ -1,6 +1,6 @@
 package org.openmbee.flexo.mms
 
-import sorg.testcontainers.containers.GenericContainer
+import org.testcontainers.containers.GenericContainer
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.ConfigFactory
@@ -151,17 +151,3 @@ class StoreTest {
         return Files.probeContentType(path)?.let { ContentType.parse(it) } ?: ContentType.Application.OctetStream
     }
 }
-
-
-//minio server
-//        val minioContainer: MinIOContainer = MinIOContainer("minio/minio:RELEASE.2022-05-26T05-48-41Z.hotfix.15f13935a").apply{
-//            val MinIOEnv: Map<String, String> = mapOf(
-//                "MINIO_PORT_NUMBER" to "${MINIO_PORT_NUMBER}",
-//                "MINIO_ACCESS_KEY" to MINIO_ACCESS_KEY,
-//                "MINIO_SECRET_KEY" to MINIO_SECRET_KEY
-//            )
-//            withExposedPorts(MINIO_PORT_NUMBER)
-//            withEnv(MinIOEnv)
-//            withCommand("server /tmp/data")
-//            waitingFor(Wait.forHttp("/minio/health/live").forStatusCode(200)))
-//        }
