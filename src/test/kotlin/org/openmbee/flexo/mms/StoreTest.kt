@@ -139,9 +139,9 @@ class StoreTest {
 
     fun testEnv(): ApplicationEngineEnvironment {
         return createTestEnvironment {
-            javaClass.classLoader.getResourceAsStream("application.conf")?.let { it ->
+            javaClass.classLoader.getResourceAsStream("application.conf.test")?.let { it ->
                 InputStreamReader(it).use { iit ->
-                    config = HoconApplicationConfig(ConfigFactory.parseReader(iit)) //had to remove a .resolve() just inside last )
+                    config = HoconApplicationConfig(ConfigFactory.parseReader(iit).resolve())
                 }
             }
         }
