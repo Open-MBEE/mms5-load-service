@@ -118,6 +118,59 @@ class ApplicationTest {
         }
     }
 
+    @Test
+    fun testPutStore() = testApplication {
+        environment {
+            config = testEnv
+        }
+        application {
+            module()
+        }
+
+        Assertions.assertTrue(minioContainer.isRunning)
+        val filename = "test.ttl"
+        val adminAuth = AuthStruct("admintest", listOf("super_admins"))
+        val authToken = authorization(adminAuth)
+
+        client.put("store/some/path/${filename}") {
+            headers{
+                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+            }
+            setBody(object: OutgoingContent.WriteChannelContent() {
+                override val contentType = determineContentType(filename)
+                override val contentLength = File(filename).length().toLong() ?: 0L
+                override suspend fun writeTo(channel: ByteWriteChannel) {
+                    File(filename).inputStream().use { input -> channel.writeAvailable(input.readBytes())}
+                }
+            })
+        }.apply {
+            assertEquals("200 OK", this.status.toString())
+            val url = this.bodyAsText()
+            assertNotNull(url)
+            Assertions.assertTrue(url.contains(filename))
+
+        }
+        client.get("signed/some/path/${filename}") {
+            headers{
+                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+            }
+        }.apply {
+            assertEquals("200 OK", this.status.toString())
+            val url = this.bodyAsText()
+            assertNotNull(url)
+            Assertions.assertTrue(url.contains(filename))
+        }
+        client.get("store/some/path/${filename}") {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+            }
+        }.apply {
+            assertEquals("200 OK", this.status.toString())
+            val data = this.bodyAsText()
+            Assertions.assertTrue(data.equals(File(filename).inputStream().readAllBytes().toString(Charsets.UTF_8)))
+        }
+    }
+
     data class AuthStruct (
         val username: String = "",
         val groups: List<String> = listOf("")
