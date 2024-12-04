@@ -10,6 +10,7 @@ plugins {
     application
     kotlin("jvm") version "1.9.20"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
+    jacoco
 }
 
 group = "org.openmbee.flexo.mms"
@@ -56,5 +57,14 @@ dependencies {
 tasks {
     test {
         useJUnitPlatform()
+    }
+}
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+}
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // tests are required to run before generating the report
+    reports {
+        xml.required.set(true)
     }
 }
