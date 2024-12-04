@@ -1,0 +1,34 @@
+ktor {
+    development = true
+    deployment {
+        port = 8080 // Port on which the server will run
+        watch = [development, application.conf] // Files to watch for automatic reload in development mode
+    }
+    application {
+        modules = [org.openmbee.flexo.mms.ApplicationKt.module] // The module function from the Kotlin file
+    }
+}
+
+jwt {
+    domain = "https://localhost/"
+    domain = ${?JWT_DOMAIN}
+    audience = "test-audience"
+    audience = ${?JWT_AUDIENCE}
+    secret = "thisissomethingsecret123"
+    secret = ${?JWT_SECRET}
+    realm = "Test Relm"
+    realm = ${?JWT_REALM}
+}
+
+s3 {
+    region = "us-gov-west-1"
+    region = ${?S3_REGION}
+    bucket = "load"
+    bucket = ${?S3_BUCKET}
+    endpoint = ""
+    endpoint = ${?S3_ENDPOINT}
+    access_key = "admintest"
+    access_key = ${?S3_ACCESS_KEY}
+    secret_key = "admintest"
+    secret_key = ${?S3_SECRET_KEY}
+}

@@ -1,16 +1,29 @@
 version: 2.1
 orbs:
   docker: circleci/docker@2.1.1
+executors:
+  machine_executor_amd64:
+    machine:
+      image: ubuntu-2204:2022.04.2
+    environment:
+      architecture: "amd64"
+      platform: "linux/amd64"
 
 jobs:
   build_and_test:
-    executor:
-      name: docker/docker
+    machine:
+      image: default
     working_directory: /home/circleci/flexo-mms-store-service
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
+      #- setup_remote_docker:
+      #    docker_layer_caching: true
+      - run:
+          name: Run test
+          command: |
+            ./gradlew test
+      - store_artifacts:
+          path: /home/circleci/flexo-mms-store-service/build/reports/tests
       - run:
           name: Build docker image
           command: |
