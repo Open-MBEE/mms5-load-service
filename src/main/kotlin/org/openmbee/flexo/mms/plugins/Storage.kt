@@ -39,11 +39,12 @@ fun Application.configureStorage() {
             post("store/{filename}") {
                 // https://www.baeldung.com/kotlin/io-and-default-dispatcher
                 // s3 client file operation is blocking, on netty this will error without withContext
+                // this is here to keep compatibility with layer1's load model until layer1 is updated
                 withContext(Dispatchers.IO) {
-                    val contentType = call.request.contentType()
-                    val location = s3Storage.store(
+                    val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
+                    s3Storage.store(
                         call.receiveStream(),
-                        call.parameters["filename"]!!,
+                        location,
                         call.request.header(HttpHeaders.ContentLength)!!.toLong(),
                         call.request.contentType()
                     )
@@ -51,17 +52,29 @@ fun Application.configureStorage() {
                     call.respond(s3Storage.getPreSignedUrl(location))
                 }
             }
-
-            get("signed/{filename}") {
-                val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
-                call.application.log.info("Location:\n$location")
-                call.respond(s3Storage.getPreSignedUrl(location))
+            put("store/{path...}") {
+                withContext(Dispatchers.IO) {
+                    val path = call.parameters.getAll("path")?.joinToString("/")
+                    s3Storage.store(
+                        call.receiveStream(),
+                        path!!,
+                        call.request.header(HttpHeaders.ContentLength)!!.toLong(),
+                        call.request.contentType()
+                    )
+                    call.respond(s3Storage.getPreSignedUrl(path!!))
+                }
             }
 
-            get("file/{filename}") {
+            get("signed/{path...}") {
+                val path = call.parameters.getAll("path")?.joinToString("/")
+                call.application.log.info("Path:\n$path")
+                call.respond(s3Storage.getPreSignedUrl(path!!))
+            }
+
+            get("store/{path...}") {
                 withContext(Dispatchers.IO) {
-                    val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
-                    call.respond(s3Storage.get(location))
+                    val path = call.parameters.getAll("path")?.joinToString("/")
+                    call.respond(s3Storage.get(path!!))
                 }
             }
         }
@@ -85,19 +98,18 @@ class S3Storage(s3Config: S3Config) {
             .toString()
     }
 
-    fun store(data: InputStream, filename: String, contentLength: Long, contentType: ContentType): String {
-        val location = buildLocation(filename, MimeTypes.Text.TTL.extension)
+    fun store(data: InputStream, path: String, contentLength: Long, contentType: ContentType): String {
         val om = ObjectMetadata()
         om.contentType = contentType.toString()
         om.contentLength = contentLength
-        val por = PutObjectRequest(bucket, location, data, om)
+        val por = PutObjectRequest(bucket, path, data, om)
         try {
             s3Client.putObject(por)
         } catch (e: RuntimeException) {
             logger.error("Error storing artifact: ", e)
             throw e
         }
-        return location
+        return path
     }
 
     private fun getClient(s3ConfigValues: S3Config): AmazonS3 {
