@@ -35,7 +35,7 @@ fun Application.configureStorage() {
     val s3Storage = S3Storage(getS3ConfigValues(environment.config))
 
     routing {
-        authenticate {
+        //authenticate { // if authen is desired then uncomment this
             post("store/{filename}") {
                 // https://www.baeldung.com/kotlin/io-and-default-dispatcher
                 // s3 client file operation is blocking, on netty this will error without withContext
@@ -55,13 +55,17 @@ fun Application.configureStorage() {
             put("store/{path...}") {
                 withContext(Dispatchers.IO) {
                     val path = call.parameters.getAll("path")?.joinToString("/")
-                    s3Storage.store(
-                        call.receiveStream(),
-                        path!!,
-                        call.request.header(HttpHeaders.ContentLength)!!.toLong(),
-                        call.request.contentType()
-                    )
-                    call.respond(s3Storage.getPreSignedUrl(path!!))
+                    try {
+                        s3Storage.store(
+                            call.receiveStream(),
+                            path!!,
+                            call.request.header(HttpHeaders.ContentLength)!!.toLong(),
+                            call.request.contentType()
+                        )
+                        call.respond(s3Storage.getPreSignedUrl(path!!))
+                    } catch (e: AmazonS3Exception) {
+                        call.respond(HttpStatusCode(e.statusCode, e.errorCode!!), e.errorMessage)
+                    }
                 }
             }
 
@@ -74,10 +78,14 @@ fun Application.configureStorage() {
             get("store/{path...}") {
                 withContext(Dispatchers.IO) {
                     val path = call.parameters.getAll("path")?.joinToString("/")
-                    call.respond(s3Storage.get(path!!))
+                    try {
+                        call.respond(s3Storage.get(path!!))
+                    } catch (e: AmazonS3Exception) {
+                        call.respond(HttpStatusCode(e.statusCode, e.errorCode!!), e.errorMessage)
+                    }
                 }
             }
-        }
+        //}
     }
 }
 
@@ -143,6 +151,7 @@ class S3Storage(s3Config: S3Config) {
     }
 
     companion object {
+        //remove once layer1 is updated to not use post in model load
         fun buildLocation(filename: String, extension: String): String {
             val today = LocalDate.now()
             return java.lang.String.format(
@@ -152,18 +161,6 @@ class S3Storage(s3Config: S3Config) {
                 extension
             )
         }
-
-        /* TODO: Get extension or mimetype from request body once we support multiple formats
-        private fun getExtension(mime: String): String {
-            var extension = ""
-            try {
-                extension = MimeTypes.Text.TTL.extension
-            } catch (e: Exception) {
-                logger.error("Error getting extension: ", e)
-            }
-            return extension
-        }
-         */
     }
 }
 

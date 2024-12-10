@@ -68,6 +68,27 @@ class ApplicationTest {
                     .withStartupTimeout(Duration.ofSeconds(10))
             )
         }
+        data class AuthStruct (
+            val username: String = "",
+            val groups: List<String> = listOf("")
+        )
+
+        fun authorization(auth: AuthStruct): String {
+            val jwtAudience = testEnvConfig.config.property("jwt.audience").getString()
+            val issuer = testEnvConfig.config.property("jwt.domain").getString()
+            val secret = testEnvConfig.config.property("jwt.secret").getString()
+            val expires = Date(System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000))
+            return JWT.create()         //ADD "Bearer " +
+                .withAudience(jwtAudience)
+                .withIssuer(issuer)
+                .withClaim("username", auth.username)
+                .withClaim("groups", auth.groups)
+                .withExpiresAt(expires)
+                .sign(Algorithm.HMAC256(secret))
+        }
+
+        val adminAuth = AuthStruct("admintest", listOf("super_admins"))
+        val authToken = authorization(adminAuth)
 
         @JvmStatic
         @BeforeAll
@@ -95,12 +116,10 @@ class ApplicationTest {
 
         Assertions.assertTrue(minioContainer.isRunning)
         val filename = "test.ttl"
-        val adminAuth = AuthStruct("admintest", listOf("super_admins"))
-        val authToken = authorization(adminAuth)
 
         client.post("store/${filename}") {
             headers{
-                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+                append(HttpHeaders.Authorization, "Bearer $authToken")
             }
             setBody(object: OutgoingContent.WriteChannelContent() {
                 override val contentType = determineContentType(filename)
@@ -129,12 +148,10 @@ class ApplicationTest {
 
         Assertions.assertTrue(minioContainer.isRunning)
         val filename = "test.ttl"
-        val adminAuth = AuthStruct("admintest", listOf("super_admins"))
-        val authToken = authorization(adminAuth)
 
         client.put("store/some/path/${filename}") {
             headers{
-                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+                append(HttpHeaders.Authorization, "Bearer $authToken")
             }
             setBody(object: OutgoingContent.WriteChannelContent() {
                 override val contentType = determineContentType(filename)
@@ -152,7 +169,7 @@ class ApplicationTest {
         }
         client.get("signed/some/path/${filename}") {
             headers{
-                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+                append(HttpHeaders.Authorization, "Bearer $authToken")
             }
         }.apply {
             assertEquals("200 OK", this.status.toString())
@@ -162,7 +179,7 @@ class ApplicationTest {
         }
         client.get("store/some/path/${filename}") {
             headers {
-                append(HttpHeaders.Authorization, "Bearer ${authToken}")
+                append(HttpHeaders.Authorization, "Bearer $authToken")
             }
         }.apply {
             assertEquals("200 OK", this.status.toString())
@@ -171,36 +188,24 @@ class ApplicationTest {
         }
     }
 
-    data class AuthStruct (
-        val username: String = "",
-        val groups: List<String> = listOf("")
-    )
+    @Test
+    fun testNotFound() = testApplication {
+        environment {
+            config = testEnv
+        }
+        application {
+            module()
+        }
+        Assertions.assertTrue(minioContainer.isRunning)
 
-    private fun authorization(auth: AuthStruct): String {
-        //val testEnv = testEnv()       //Removed since the testEnvConfig at the top is the same as what testEnv would be
-        val jwtAudience = testEnvConfig.config.property("jwt.audience").getString()
-        val issuer = testEnvConfig.config.property("jwt.domain").getString()
-        val secret = testEnvConfig.config.property("jwt.secret").getString()
-        val expires = Date(System.currentTimeMillis() + (1 * 24 * 60 * 60 * 1000))
-        return JWT.create()         //ADD "Bearer " +
-            .withAudience(jwtAudience)
-            .withIssuer(issuer)
-            .withClaim("username", auth.username)
-            .withClaim("groups", auth.groups)
-            .withExpiresAt(expires)
-            .sign(Algorithm.HMAC256(secret))
+        client.get("store/some/path/bad.txt") {
+            headers {
+                append(HttpHeaders.Authorization, "Bearer $authToken")
+            }
+        }.apply {
+            assertEquals(404, this.status.value)
+        }
     }
-
-    //Commented out since it could not be called at the top, but was used in first line of authorization() above
-//    fun testEnv(): ApplicationEngineEnvironment {
-//        return createTestEnvironment {
-//            javaClass.classLoader.getResourceAsStream("application.conf.test")?.let { it ->
-//                InputStreamReader(it).use { iit ->
-//                    config = HoconApplicationConfig(ConfigFactory.parseReader(iit).resolve())
-//                }
-//            }
-//        }
-//    }
 
     //Used to get the content type of the uploaded file
     private fun determineContentType(filePath: String): ContentType {
@@ -209,14 +214,3 @@ class ApplicationTest {
     }
 }
 
-//From Blake - Old test in ApplicationTest.kt
-//    @Test
-//    fun testRoot() {
-//        withTestApplication({ configureRouting() }) {
-//            handleRequest(HttpMethod.Get, "/").apply {
-//                assertEquals(HttpStatusCode.OK, response.status())
-//                assertEquals("Hello World!", response.content)
-//            }
-//        }
-//    }
-//}
