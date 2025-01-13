@@ -123,7 +123,7 @@ class ApplicationTest {
             }
             setBody(object: OutgoingContent.WriteChannelContent() {
                 override val contentType = determineContentType(filename)
-                override val contentLength = File(filename).length().toLong() ?: 0L
+                //override val contentLength = File(filename).length().toLong() ?: 0L
                 override suspend fun writeTo(channel: ByteWriteChannel) {
                     File(filename).inputStream().use { input -> channel.writeAvailable(input.readBytes())}
                 }
@@ -155,7 +155,7 @@ class ApplicationTest {
             }
             setBody(object: OutgoingContent.WriteChannelContent() {
                 override val contentType = determineContentType(filename)
-                override val contentLength = File(filename).length().toLong() ?: 0L
+                //override val contentLength = File(filename).length().toLong() ?: 0L
                 override suspend fun writeTo(channel: ByteWriteChannel) {
                     File(filename).inputStream().use { input -> channel.writeAvailable(input.readBytes())}
                 }

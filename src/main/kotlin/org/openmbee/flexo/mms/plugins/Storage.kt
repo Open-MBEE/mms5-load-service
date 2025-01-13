@@ -11,7 +11,6 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.*
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.config.*
 import io.ktor.server.plugins.autohead.*
 import io.ktor.server.request.*
@@ -21,11 +20,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.openmbee.flexo.mms.lib.MimeTypes
 import org.slf4j.LoggerFactory
-import java.io.File
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
+import software.amazon.awssdk.awscore.exception.AwsServiceException
+import software.amazon.awssdk.core.async.AsyncRequestBody
+import software.amazon.awssdk.services.s3.S3AsyncClient
+import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder
+import software.amazon.awssdk.transfer.s3.S3TransferManager
+import software.amazon.awssdk.transfer.s3.model.Upload
+import software.amazon.awssdk.regions.Region
 import java.io.InputStream
+import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
+
 
 fun Application.configureStorage() {
     install(AutoHeadResponse)
@@ -87,6 +97,7 @@ class S3Storage(s3Config: S3Config) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val s3Client = getClient(s3Config)
+    private val s3Client2 = getClient2(s3Config)
     private val bucket = s3Config.bucket
 
     fun get(location: String?): ByteArray {
@@ -101,31 +112,53 @@ class S3Storage(s3Config: S3Config) {
     }
 
     fun store(data: InputStream, path: String): String {
-
-        val file = File.createTempFile("flexo-store", null)
-        data.use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
-            }
+        val body = AsyncRequestBody.forBlockingInputStream(null) // 'null' indicates a stream will be provided later.
+        val transferManager = S3TransferManager.builder().s3Client(s3Client2).build()
+        val upload: Upload = transferManager.upload { builder ->
+            builder
+                .requestBody(body)
+                .putObjectRequest { req -> req.bucket(bucket).key(path) }
+                .build()
         }
-        val por = PutObjectRequest(bucket, path, file)
+        body.writeInputStream(data)
         try {
-            s3Client.putObject(por)
-        } catch (e: RuntimeException) {
-            logger.error("Error storing artifact: ", e)
-            throw e
-        } finally {
-            if (file.exists()) {
-                try {
-                    file.delete()
-                } catch (e: Exception) {
-                    logger.info("Error deleting uploaded temp file: ", e)
-                }
-            }
+            upload.completionFuture().join()
+        } catch (e: Exception) {
+            logger.error(e.message, e)
+            throw(e)
         }
         return path
     }
 
+    private fun getClient2(s3ConfigValues: S3Config): S3AsyncClient {
+        val builder: S3CrtAsyncClientBuilder = S3AsyncClient.crtBuilder()
+            .forcePathStyle(true)
+            .endpointOverride(URI(s3ConfigValues.endpoint))
+            .region(Region.of(s3ConfigValues.region))
+        val s3Client2 = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
+            val credentials = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
+            )
+            builder.credentialsProvider(credentials).build()
+        } else {
+            builder.credentialsProvider(DefaultCredentialsProvider.create()).build()
+        }
+        //check if bucket exists and create if it doesn't
+        try {
+            s3Client2.getBucketAcl { r -> r.bucket(s3ConfigValues.bucket) }
+        } catch (ase: AwsServiceException) {
+            // A redirect error or an AccessDenied exception means the bucket exists but it's not in this region
+            // or we don't have permissions to it.
+            if ((ase.statusCode() == HttpStatusCode.MovedPermanently.value) ||
+                ("AccessDenied" == ase.awsErrorDetails().errorCode())) {
+                throw Exception(ase)
+            }
+            if (ase.statusCode() == HttpStatusCode.NotFound.value) {
+                s3Client2.createBucket { r -> r.bucket(s3ConfigValues.bucket) }.join()
+            }
+        }
+        return s3Client2
+    }
     private fun getClient(s3ConfigValues: S3Config): AmazonS3 {
         val clientConfiguration = ClientConfiguration()
         clientConfiguration.signerOverride = "AWSS3V4SignerType"
