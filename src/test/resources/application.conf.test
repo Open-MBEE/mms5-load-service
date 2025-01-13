@@ -28,7 +28,7 @@ s3 {
     endpoint = ""
     endpoint = ${?S3_ENDPOINT}
     access_key = "admintest"
-    access_key = ${?S3_ACCESS_KEY}
+    access_key = ${?AWS_ACCESS_KEY_ID}
     secret_key = "admintest"
-    secret_key = ${?S3_SECRET_KEY}
+    secret_key = ${?AWS_SECRET_ACCESS_KEY}
 }

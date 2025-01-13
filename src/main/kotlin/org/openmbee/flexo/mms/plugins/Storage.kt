@@ -88,13 +88,14 @@ fun Application.configureStorage() {
 
 class S3Storage(s3Config: S3Config) {
     private val logger = LoggerFactory.getLogger(javaClass)
-
+    //https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/examples-s3.html
     private val s3Client = getClient(s3Config)
     private val s3ClientAsync = getClientAsync(s3Config)
     private val presigner = getPresigner()
     private val bucket = s3Config.bucket
 
     fun get(location: String?): ByteArray {
+        //TODO should use async client
         val objectRequest = GetObjectRequest.builder().key(location).bucket(bucket).build()
         return s3Client.getObject(objectRequest).readAllBytes()
     }

@@ -28,8 +28,8 @@ import kotlin.test.assertNotNull
 class ApplicationTest {
     companion object {
         //MINIO settings
-        val MINIO_ACCESS_KEY = "admintest"      //This and MINIO_SECRET_KEY under "environment" in docker-compose.yml
-        val MINIO_SECRET_KEY = "admintest"
+        val MINIO_ROOT_USER = "admintest"
+        val MINIO_ROOT_PASSWORD = "admintest"
         val MINIO_PORT_NUMBER = 9000
 
         val testEnvConfig = createTestEnvironment {
@@ -55,8 +55,8 @@ class ApplicationTest {
         val minioContainer: GenericContainer<Nothing> = GenericContainer<Nothing>("quay.io/minio/minio").apply {
             val minioENVs: Map<String, String> = mapOf(
                 "MINIO_PORT_NUMBER" to "${MINIO_PORT_NUMBER}",
-                "MINIO_ROOT_USER" to MINIO_ACCESS_KEY,
-                "MINIO_ROOT_PASSWORD" to MINIO_SECRET_KEY
+                "MINIO_ROOT_USER" to MINIO_ROOT_USER,
+                "MINIO_ROOT_PASSWORD" to MINIO_ROOT_PASSWORD
             )
             withExposedPorts(MINIO_PORT_NUMBER)
             withEnv(minioENVs)
