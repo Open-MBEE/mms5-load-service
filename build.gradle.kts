@@ -38,7 +38,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-jackson:$ktor_version")
 
     implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("com.amazonaws:aws-java-sdk-s3:$s3_version")
+    //implementation("com.amazonaws:aws-java-sdk-s3:$s3_version")
     implementation("software.amazon.awssdk:s3-transfer-manager:2.29.50")
     implementation("software.amazon.awssdk.crt:aws-crt:0.33.7")
 

@@ -1,14 +1,5 @@
 package org.openmbee.flexo.mms.plugins
 
-import com.amazonaws.ClientConfiguration
-import com.amazonaws.auth.AWSCredentials
-import com.amazonaws.auth.AWSStaticCredentialsProvider
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
-import com.amazonaws.client.builder.AwsClientBuilder
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import com.amazonaws.services.s3.model.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.config.*
@@ -25,17 +16,22 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.awscore.exception.AwsServiceException
 import software.amazon.awssdk.core.async.AsyncRequestBody
+import software.amazon.awssdk.core.async.AsyncResponseTransformer
+import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
+import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder
+import software.amazon.awssdk.services.s3.model.GetObjectRequest
+import software.amazon.awssdk.services.s3.model.S3Exception
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.transfer.s3.S3TransferManager
 import software.amazon.awssdk.transfer.s3.model.Upload
-import software.amazon.awssdk.regions.Region
 import java.io.InputStream
 import java.net.URI
-import java.time.Instant
+import java.time.Duration
 import java.time.LocalDate
-import java.util.*
-
+import java.util.concurrent.CompletionException
 
 fun Application.configureStorage() {
     install(AutoHeadResponse)
@@ -67,8 +63,8 @@ fun Application.configureStorage() {
                             path!!
                         )
                         call.respond(s3Storage.getPreSignedUrl(path!!))
-                    } catch (e: AmazonS3Exception) {
-                        call.respond(HttpStatusCode(e.statusCode, e.errorCode!!), e.errorMessage)
+                    } catch (e: AwsServiceException) {
+                        call.respond(HttpStatusCode(e.statusCode(), e.awsErrorDetails().errorCode()), e.message!!)
                     }
                 }
             }
@@ -84,8 +80,8 @@ fun Application.configureStorage() {
                     val path = call.parameters.getAll("path")?.joinToString("/")
                     try {
                         call.respond(s3Storage.get(path!!))
-                    } catch (e: AmazonS3Exception) {
-                        call.respond(HttpStatusCode(e.statusCode, e.errorCode!!), e.errorMessage)
+                    } catch (e: AwsServiceException) {
+                        call.respond(HttpStatusCode(e.statusCode(), e.awsErrorDetails().errorCode()), e.message!!)
                     }
                 }
             }
@@ -97,23 +93,28 @@ class S3Storage(s3Config: S3Config) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val s3Client = getClient(s3Config)
-    private val s3Client2 = getClient2(s3Config)
+    private val s3ClientAsync = getClientAsync(s3Config)
+    private val presigner = getPresigner()
     private val bucket = s3Config.bucket
 
     fun get(location: String?): ByteArray {
-        val rangeObjectRequest = GetObjectRequest(bucket, location)
-        return s3Client.getObject(rangeObjectRequest).objectContent.readAllBytes()
+        val objectRequest = GetObjectRequest.builder().key(location).bucket(bucket).build()
+        return s3Client.getObject(objectRequest).readAllBytes()
     }
 
     fun getPreSignedUrl(location: String): String {
-        return s3Client
-            .generatePresignedUrl(bucket, location, Date.from(Instant.now().plusSeconds(30 * 60)))
-            .toString()
+        val objectRequest: GetObjectRequest = GetObjectRequest.builder()
+            .bucket(bucket).key(location).build()
+        val presignRequest: GetObjectPresignRequest = GetObjectPresignRequest.builder()
+            .signatureDuration(Duration.ofMinutes(30)) // The URL will expire in 10 minutes.
+            .getObjectRequest(objectRequest).build()
+        return presigner.presignGetObject(presignRequest).url().toExternalForm()
     }
 
     fun store(data: InputStream, path: String): String {
-        val body = AsyncRequestBody.forBlockingInputStream(null) // 'null' indicates a stream will be provided later.
-        val transferManager = S3TransferManager.builder().s3Client(s3Client2).build()
+        //https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/javav2/example_code/s3/src/main/java/com/example/s3/transfermanager/UploadStream.java
+        val body = AsyncRequestBody.forBlockingInputStream(null) //null indicates stream is provided later
+        val transferManager = S3TransferManager.builder().s3Client(s3ClientAsync).build()
         val upload: Upload = transferManager.upload { builder ->
             builder
                 .requestBody(body)
@@ -121,72 +122,46 @@ class S3Storage(s3Config: S3Config) {
                 .build()
         }
         body.writeInputStream(data)
-        try {
-            upload.completionFuture().join()
-        } catch (e: Exception) {
-            logger.error(e.message, e)
-            throw(e)
-        }
+        upload.completionFuture().join()
         return path
     }
 
-    private fun getClient2(s3ConfigValues: S3Config): S3AsyncClient {
-        val builder: S3CrtAsyncClientBuilder = S3AsyncClient.crtBuilder()
-            .forcePathStyle(true)
-            .endpointOverride(URI(s3ConfigValues.endpoint))
-            .region(Region.of(s3ConfigValues.region))
-        val s3Client2 = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
-            val credentials = StaticCredentialsProvider.create(
+    private fun getClient(s3ConfigValues: S3Config): S3Client {
+        val builder = S3Client.builder().forcePathStyle(true)
+            .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
+        val s3Client = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
+            builder.credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
-            )
-            builder.credentialsProvider(credentials).build()
+            )).build()
         } else {
             builder.credentialsProvider(DefaultCredentialsProvider.create()).build()
         }
         //check if bucket exists and create if it doesn't
         try {
-            s3Client2.getBucketAcl { r -> r.bucket(s3ConfigValues.bucket) }
+            s3Client.getBucketAcl { r -> r.bucket(s3ConfigValues.bucket) }
         } catch (ase: AwsServiceException) {
-            // A redirect error or an AccessDenied exception means the bucket exists but it's not in this region
-            // or we don't have permissions to it.
-            if ((ase.statusCode() == HttpStatusCode.MovedPermanently.value) ||
-                ("AccessDenied" == ase.awsErrorDetails().errorCode())) {
-                throw Exception(ase)
-            }
             if (ase.statusCode() == HttpStatusCode.NotFound.value) {
-                s3Client2.createBucket { r -> r.bucket(s3ConfigValues.bucket) }.join()
+                s3Client.createBucket { r -> r.bucket(s3ConfigValues.bucket) }
+            } else {
+                throw ase
             }
+        }
+        return s3Client
+    }
+    private fun getClientAsync(s3ConfigValues: S3Config): S3AsyncClient {
+        val builder: S3CrtAsyncClientBuilder = S3AsyncClient.crtBuilder().forcePathStyle(true)
+            .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
+        val s3Client2 = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
+            )).build()
+        } else {
+            builder.credentialsProvider(DefaultCredentialsProvider.create()).build()
         }
         return s3Client2
     }
-    private fun getClient(s3ConfigValues: S3Config): AmazonS3 {
-        val clientConfiguration = ClientConfiguration()
-        clientConfiguration.signerOverride = "AWSS3V4SignerType"
-        val builder: AmazonS3ClientBuilder = AmazonS3ClientBuilder
-            .standard()
-            .withEndpointConfiguration(
-                AwsClientBuilder.EndpointConfiguration(
-                    s3ConfigValues.endpoint,
-                    s3ConfigValues.region
-                )
-            )
-            .withPathStyleAccessEnabled(true)
-            .withClientConfiguration(clientConfiguration)
-        val s3Client = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
-            val credentials: AWSCredentials = BasicAWSCredentials(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
-            builder.withCredentials(AWSStaticCredentialsProvider(credentials)).build()
-        } else {
-            builder.withCredentials(DefaultAWSCredentialsProviderChain.getInstance()).build()
-        }
-        if (!s3Client.doesBucketExistV2(s3ConfigValues.bucket)) {
-            try {
-                s3Client.createBucket(s3ConfigValues.bucket)
-            } catch (e: AmazonS3Exception) {
-                throw Exception(e)
-            }
-        }
-
-        return s3Client
+    private fun getPresigner(): S3Presigner {
+        return S3Presigner.builder().s3Client(s3Client).build()
     }
 
     companion object {
