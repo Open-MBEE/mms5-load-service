@@ -8,15 +8,12 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import com.amazonaws.services.s3.model.AmazonS3Exception
-import com.amazonaws.services.s3.model.GetObjectRequest
-import com.amazonaws.services.s3.model.ObjectMetadata
-import com.amazonaws.services.s3.model.PutObjectRequest
+import com.amazonaws.services.s3.model.*
+import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.config.*
 import io.ktor.server.plugins.autohead.*
-import io.ktor.http.*
-import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -24,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.openmbee.flexo.mms.lib.MimeTypes
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.io.InputStream
 import java.time.Instant
 import java.time.LocalDate
@@ -44,9 +42,7 @@ fun Application.configureStorage() {
                     val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
                     s3Storage.store(
                         call.receiveStream(),
-                        location,
-                        call.request.header(HttpHeaders.ContentLength)!!.toLong(),
-                        call.request.contentType()
+                        location
                     )
                     call.application.log.info("Location:\n$location")
                     call.respond(s3Storage.getPreSignedUrl(location))
@@ -58,9 +54,7 @@ fun Application.configureStorage() {
                     try {
                         s3Storage.store(
                             call.receiveStream(),
-                            path!!,
-                            call.request.header(HttpHeaders.ContentLength)!!.toLong(),
-                            call.request.contentType()
+                            path!!
                         )
                         call.respond(s3Storage.getPreSignedUrl(path!!))
                     } catch (e: AmazonS3Exception) {
@@ -106,16 +100,28 @@ class S3Storage(s3Config: S3Config) {
             .toString()
     }
 
-    fun store(data: InputStream, path: String, contentLength: Long, contentType: ContentType): String {
-        val om = ObjectMetadata()
-        om.contentType = contentType.toString()
-        om.contentLength = contentLength
-        val por = PutObjectRequest(bucket, path, data, om)
+    fun store(data: InputStream, path: String): String {
+
+        val file = File.createTempFile("flexo-store", null)
+        data.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        val por = PutObjectRequest(bucket, path, file)
         try {
             s3Client.putObject(por)
         } catch (e: RuntimeException) {
             logger.error("Error storing artifact: ", e)
             throw e
+        } finally {
+            if (file.exists()) {
+                try {
+                    file.delete()
+                } catch (e: Exception) {
+                    logger.info("Error deleting uploaded temp file: ", e)
+                }
+            }
         }
         return path
     }
