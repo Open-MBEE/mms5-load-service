@@ -16,13 +16,11 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.awscore.exception.AwsServiceException
 import software.amazon.awssdk.core.async.AsyncRequestBody
-import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
-import software.amazon.awssdk.services.s3.model.S3Exception
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.transfer.s3.S3TransferManager
@@ -31,7 +29,6 @@ import java.io.InputStream
 import java.net.URI
 import java.time.Duration
 import java.time.LocalDate
-import java.util.concurrent.CompletionException
 
 fun Application.configureStorage() {
     install(AutoHeadResponse)
@@ -106,7 +103,7 @@ class S3Storage(s3Config: S3Config) {
         val objectRequest: GetObjectRequest = GetObjectRequest.builder()
             .bucket(bucket).key(location).build()
         val presignRequest: GetObjectPresignRequest = GetObjectPresignRequest.builder()
-            .signatureDuration(Duration.ofMinutes(30)) // The URL will expire in 10 minutes.
+            .signatureDuration(Duration.ofMinutes(30))
             .getObjectRequest(objectRequest).build()
         return presigner.presignGetObject(presignRequest).url().toExternalForm()
     }
