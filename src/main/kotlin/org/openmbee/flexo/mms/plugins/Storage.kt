@@ -127,6 +127,7 @@ class S3Storage(s3Config: S3Config) {
     private fun getClient(s3ConfigValues: S3Config): S3Client {
         val builder = S3Client.builder().forcePathStyle(true)
             .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
+        logger.info("async access keys ${s3ConfigValues.accessKey} ${s3ConfigValues.secretKey}")
         val s3Client = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
             builder.credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
@@ -149,6 +150,7 @@ class S3Storage(s3Config: S3Config) {
     private fun getClientAsync(s3ConfigValues: S3Config): S3AsyncClient {
         val builder: S3CrtAsyncClientBuilder = S3AsyncClient.crtBuilder().forcePathStyle(true)
             .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
+        logger.info("async access keys ${s3ConfigValues.accessKey} ${s3ConfigValues.secretKey}")
         val s3Client2 = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
             builder.credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
