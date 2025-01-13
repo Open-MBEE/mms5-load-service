@@ -52,11 +52,11 @@ class ApplicationTest {
             "s3.secret_key" to testEnvConfig.config.property("s3.secret_key").getString()
         )
 
-        val minioContainer: GenericContainer<Nothing> = GenericContainer<Nothing>("minio/minio:RELEASE.2022-05-26T05-48-41Z.hotfix.15f13935a").apply {
+        val minioContainer: GenericContainer<Nothing> = GenericContainer<Nothing>("quay.io/minio/minio").apply {
             val minioENVs: Map<String, String> = mapOf(
                 "MINIO_PORT_NUMBER" to "${MINIO_PORT_NUMBER}",
-                "MINIO_ACCESS_KEY" to MINIO_ACCESS_KEY,
-                "MINIO_SECRET_KEY" to MINIO_SECRET_KEY
+                "MINIO_ROOT_USER" to MINIO_ACCESS_KEY,
+                "MINIO_ROOT_PASSWORD" to MINIO_SECRET_KEY
             )
             withExposedPorts(MINIO_PORT_NUMBER)
             withEnv(minioENVs)
