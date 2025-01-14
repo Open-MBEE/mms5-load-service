@@ -105,35 +105,6 @@ class S3Storage(s3Config: S3Config) {
     private val presigner: S3Presigner
     private val bucket = s3Config.bucket
 
-    init {
-        val cred = if (s3Config.accessKey.isNotEmpty() && s3Config.secretKey.isNotEmpty()) {
-            StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(s3Config.accessKey, s3Config.secretKey)
-            )
-        } else {
-            DefaultCredentialsProvider.create()
-        }
-        s3Client = S3Client.builder().forcePathStyle(true)
-            .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
-            .credentialsProvider(cred).build()
-        s3ClientAsync = S3AsyncClient.crtBuilder().forcePathStyle(true)
-            .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
-            .credentialsProvider(cred).build()
-        presigner = S3Presigner.builder()
-            .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
-            .credentialsProvider(cred).build()
-        //check if bucket exists and create if it doesn't
-        try {
-            s3Client.getBucketAcl { r -> r.bucket(s3Config.bucket) }
-        } catch (ase: AwsServiceException) {
-            if (ase.statusCode() == HttpStatusCode.NotFound.value) {
-                s3Client.createBucket { r -> r.bucket(s3Config.bucket) }
-            } else {
-                throw ase
-            }
-        }
-    }
-
     fun get(location: String?): ResponseInputStream<GetObjectResponse> {
         val objectRequest = GetObjectRequest.builder().key(location).bucket(bucket).build()
         try {
@@ -171,6 +142,35 @@ class S3Storage(s3Config: S3Config) {
         }
     }
 
+    init {
+        val cred = if (s3Config.accessKey.isNotEmpty() && s3Config.secretKey.isNotEmpty()) {
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(s3Config.accessKey, s3Config.secretKey)
+            )
+        } else {
+            DefaultCredentialsProvider.create()
+        }
+        s3Client = S3Client.builder().forcePathStyle(true)
+            .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
+            .credentialsProvider(cred).build()
+        s3ClientAsync = S3AsyncClient.crtBuilder().forcePathStyle(true)
+            .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
+            .credentialsProvider(cred).build()
+        presigner = S3Presigner.builder()
+            .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
+            .credentialsProvider(cred).build()
+        //check if bucket exists and create if it doesn't
+        try {
+            s3Client.getBucketAcl { r -> r.bucket(s3Config.bucket) }
+        } catch (ase: AwsServiceException) {
+            if (ase.statusCode() == HttpStatusCode.NotFound.value) {
+                s3Client.createBucket { r -> r.bucket(s3Config.bucket) }
+            } else {
+                throw ase
+            }
+        }
+    }
+    
     companion object {
         //remove once layer1 is updated to not use post in model load
         fun buildLocation(filename: String, extension: String): String {
