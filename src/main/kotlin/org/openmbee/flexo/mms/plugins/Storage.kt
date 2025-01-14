@@ -19,7 +19,6 @@ import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
@@ -91,7 +90,7 @@ class S3Storage(s3Config: S3Config) {
     //https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/examples-s3.html
     private val s3Client = getClient(s3Config)
     private val s3ClientAsync = getClientAsync(s3Config)
-    private val presigner = getPresigner()
+    private val presigner = getPresigner(s3Config)
     private val bucket = s3Config.bucket
 
     fun get(location: String?): ByteArray {
@@ -127,7 +126,6 @@ class S3Storage(s3Config: S3Config) {
     private fun getClient(s3ConfigValues: S3Config): S3Client {
         val builder = S3Client.builder().forcePathStyle(true)
             .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
-        logger.info("async access keys ${s3ConfigValues.accessKey} ${s3ConfigValues.secretKey}")
         val s3Client = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
             builder.credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
@@ -148,9 +146,8 @@ class S3Storage(s3Config: S3Config) {
         return s3Client
     }
     private fun getClientAsync(s3ConfigValues: S3Config): S3AsyncClient {
-        val builder: S3CrtAsyncClientBuilder = S3AsyncClient.crtBuilder().forcePathStyle(true)
+        val builder = S3AsyncClient.crtBuilder().forcePathStyle(true)
             .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
-        logger.info("async access keys ${s3ConfigValues.accessKey} ${s3ConfigValues.secretKey}")
         val s3Client2 = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
             builder.credentialsProvider(StaticCredentialsProvider.create(
                 AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
@@ -160,8 +157,18 @@ class S3Storage(s3Config: S3Config) {
         }
         return s3Client2
     }
-    private fun getPresigner(): S3Presigner {
-        return S3Presigner.builder().s3Client(s3Client).build()
+    private fun getPresigner(s3ConfigValues: S3Config): S3Presigner {
+        // you would think giving it a client would set the same configs, but no
+        val builder = S3Presigner.builder()
+            .endpointOverride(URI(s3ConfigValues.endpoint)).region(Region.of(s3ConfigValues.region))
+        val presigner = if (s3ConfigValues.accessKey.isNotEmpty() && s3ConfigValues.secretKey.isNotEmpty()) {
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(s3ConfigValues.accessKey, s3ConfigValues.secretKey)
+            )).build()
+        } else {
+            builder.credentialsProvider(DefaultCredentialsProvider.create()).build()
+        }
+        return presigner
     }
 
     companion object {
