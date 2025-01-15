@@ -48,7 +48,8 @@ fun Application.configureStorage() {
                     val location = S3Storage.buildLocation(call.parameters["filename"]!!, MimeTypes.Text.TTL.extension)
                     s3Storage.store(
                         call.receiveStream(),
-                        location
+                        location,
+                        call.request.contentType()
                     )
                     call.application.log.info("Location:\n$location")
                     call.respond(s3Storage.getPreSignedUrl(location))
@@ -60,7 +61,8 @@ fun Application.configureStorage() {
                     try {
                         s3Storage.store(
                             call.receiveStream(),
-                            path!!
+                            path!!,
+                            call.request.contentType()
                         )
                         call.respond(s3Storage.getPreSignedUrl(path!!))
                     } catch (e: AwsServiceException) {
@@ -124,13 +126,13 @@ class S3Storage(s3Config: S3Config) {
         return presigner.presignGetObject(presignRequest).url().toExternalForm()
     }
 
-    fun store(data: InputStream, path: String): String {
+    fun store(data: InputStream, path: String, contentType: ContentType): String {
         //https://github.com/awsdocs/aws-doc-sdk-examples/blob/main/javav2/example_code/s3/src/main/java/com/example/s3/transfermanager/UploadStream.java
         val body = AsyncRequestBody.forBlockingInputStream(null) //null indicates stream is provided later
         val transferManager = S3TransferManager.builder().s3Client(s3ClientAsync).build()
         val upload: Upload = transferManager.upload { builder ->
             builder.requestBody(body)
-                .putObjectRequest { req -> req.bucket(bucket).key(path) }
+                .putObjectRequest { req -> req.bucket(bucket).key(path).contentType(contentType.toString()) }
                 .build()
         }
         try {
@@ -170,7 +172,7 @@ class S3Storage(s3Config: S3Config) {
             }
         }
     }
-    
+
     companion object {
         //remove once layer1 is updated to not use post in model load
         fun buildLocation(filename: String, extension: String): String {
