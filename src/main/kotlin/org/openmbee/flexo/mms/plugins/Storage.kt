@@ -21,6 +21,7 @@ import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.S3Configuration
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectResponse
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
@@ -152,6 +153,8 @@ class S3Storage(s3Config: S3Config) {
         } else {
             DefaultCredentialsProvider.create()
         }
+        //forcePathStyle are used to be compatible with using minio instead of real s3
+        //if using aws, s3 endpoint config should not include bucket name as host prefix
         s3Client = S3Client.builder().forcePathStyle(true)
             .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
             .credentialsProvider(cred).build()
@@ -159,6 +162,7 @@ class S3Storage(s3Config: S3Config) {
             .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
             .credentialsProvider(cred).build()
         presigner = S3Presigner.builder()
+            .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
             .endpointOverride(URI(s3Config.endpoint)).region(Region.of(s3Config.region))
             .credentialsProvider(cred).build()
         //check if bucket exists and create if it doesn't
