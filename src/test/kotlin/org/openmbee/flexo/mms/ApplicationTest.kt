@@ -3,6 +3,7 @@ package org.openmbee.flexo.mms
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.ConfigFactory
+import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -176,6 +177,12 @@ class ApplicationTest {
             val url = this.bodyAsText()
             assertNotNull(url)
             Assertions.assertTrue(url.contains(filename))
+            HttpClient().use {
+                it.get(url).apply {
+                    val data = this.bodyAsText()
+                    Assertions.assertTrue(data.equals(File(filename).inputStream().readAllBytes().toString(Charsets.UTF_8)))
+                }
+            }
         }
         client.get("store/some/path/${filename}") {
             headers {
