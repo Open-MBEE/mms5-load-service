@@ -3,6 +3,7 @@ package org.openmbee.flexo.mms
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.typesafe.config.ConfigFactory
+import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -28,8 +29,8 @@ import kotlin.test.assertNotNull
 class ApplicationTest {
     companion object {
         //MINIO settings
-        val MINIO_ACCESS_KEY = "admintest"      //This and MINIO_SECRET_KEY under "environment" in docker-compose.yml
-        val MINIO_SECRET_KEY = "admintest"
+        val MINIO_ROOT_USER = "admintest"
+        val MINIO_ROOT_PASSWORD = "admintest"
         val MINIO_PORT_NUMBER = 9000
 
         val testEnvConfig = createTestEnvironment {
@@ -52,11 +53,11 @@ class ApplicationTest {
             "s3.secret_key" to testEnvConfig.config.property("s3.secret_key").getString()
         )
 
-        val minioContainer: GenericContainer<Nothing> = GenericContainer<Nothing>("minio/minio:RELEASE.2022-05-26T05-48-41Z.hotfix.15f13935a").apply {
+        val minioContainer: GenericContainer<Nothing> = GenericContainer<Nothing>("quay.io/minio/minio").apply {
             val minioENVs: Map<String, String> = mapOf(
                 "MINIO_PORT_NUMBER" to "${MINIO_PORT_NUMBER}",
-                "MINIO_ACCESS_KEY" to MINIO_ACCESS_KEY,
-                "MINIO_SECRET_KEY" to MINIO_SECRET_KEY
+                "MINIO_ROOT_USER" to MINIO_ROOT_USER,
+                "MINIO_ROOT_PASSWORD" to MINIO_ROOT_PASSWORD
             )
             withExposedPorts(MINIO_PORT_NUMBER)
             withEnv(minioENVs)
@@ -123,7 +124,7 @@ class ApplicationTest {
             }
             setBody(object: OutgoingContent.WriteChannelContent() {
                 override val contentType = determineContentType(filename)
-                override val contentLength = File(filename).length().toLong() ?: 0L
+                //override val contentLength = File(filename).length().toLong() ?: 0L
                 override suspend fun writeTo(channel: ByteWriteChannel) {
                     File(filename).inputStream().use { input -> channel.writeAvailable(input.readBytes())}
                 }
@@ -155,7 +156,7 @@ class ApplicationTest {
             }
             setBody(object: OutgoingContent.WriteChannelContent() {
                 override val contentType = determineContentType(filename)
-                override val contentLength = File(filename).length().toLong() ?: 0L
+                //override val contentLength = File(filename).length().toLong() ?: 0L
                 override suspend fun writeTo(channel: ByteWriteChannel) {
                     File(filename).inputStream().use { input -> channel.writeAvailable(input.readBytes())}
                 }
@@ -176,6 +177,12 @@ class ApplicationTest {
             val url = this.bodyAsText()
             assertNotNull(url)
             Assertions.assertTrue(url.contains(filename))
+            HttpClient().use {
+                it.get(url).apply {
+                    val data = this.bodyAsText()
+                    Assertions.assertTrue(data.equals(File(filename).inputStream().readAllBytes().toString(Charsets.UTF_8)))
+                }
+            }
         }
         client.get("store/some/path/${filename}") {
             headers {

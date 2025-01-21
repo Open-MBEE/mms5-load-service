@@ -38,7 +38,9 @@ dependencies {
     implementation("io.ktor:ktor-serialization-jackson:$ktor_version")
 
     implementation("ch.qos.logback:logback-classic:$logback_version")
-    implementation("com.amazonaws:aws-java-sdk-s3:$s3_version")
+    //implementation("com.amazonaws:aws-java-sdk-s3:$s3_version")
+    implementation("software.amazon.awssdk:s3-transfer-manager:2.29.50")
+    implementation("software.amazon.awssdk.crt:aws-crt:0.33.7")
 
     testImplementation("io.ktor:ktor-server-tests:$ktor_version")
     testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
@@ -66,5 +68,13 @@ tasks.jacocoTestReport {
     dependsOn(tasks.test) // tests are required to run before generating the report
     reports {
         xml.required.set(true)
+    }
+}
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+}
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
